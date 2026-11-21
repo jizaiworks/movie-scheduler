@@ -34,6 +34,10 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+/* iOS: 横向き時の文字の自動拡大を止め、横方向へのはみ出し（横スクロール）を防ぐ */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { max-width: 100%; overflow-x: hidden; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
 body {
   font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
   background: var(--bg);
@@ -60,7 +64,21 @@ input, select, textarea {
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 6px 8px;
+  max-width: 100%;
+  min-width: 0;
 }
+/* iOS の日付入力欄は固有の最小幅で枠からはみ出すため、幅を親に合わせる */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 2.4em;
+  text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+input[type="checkbox"], input[type="color"] { min-width: auto; }
+input[type="color"] { width: 48px; height: 32px; padding: 2px; }
 
 /* ===== ヘッダー ===== */
 .topbar {
@@ -285,6 +303,10 @@ fieldset .hint { margin: 4px 0 0; width: 100%; }
 /* ===== スマホ ===== */
 @media (max-width: 760px) {
   body { font-size: 13px; }
+  /* iOS Safari は16px未満の入力欄をタップすると画面を拡大してしまうため16pxにする */
+  input, select, textarea { font-size: 16px; }
+  dialog { width: calc(100vw - 24px); max-width: 100%; padding: 16px; margin: auto; }
+  dialog form label { min-width: 0; }
   .topbar { padding: 8px 10px; padding-top: max(8px, env(safe-area-inset-top)); gap: 8px; }
   .topbar h1 { display: none; }
   .nav { width: 100%; }
