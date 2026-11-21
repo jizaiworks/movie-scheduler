@@ -695,6 +695,15 @@ $('#view').addEventListener('click', ev => {
   const cell = ev.target.closest('.month [data-date]');
   if (cell) openDay(cell.dataset.date);
 });
+// 作品詳細・日別一覧は、外側（暗い部分）をタップしても閉じる
+for (const dlg of $$('dialog.viewer')) {
+  dlg.addEventListener('click', e => {
+    if (e.target !== dlg) return;
+    const r = dlg.getBoundingClientRect();
+    const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (!inside) dlg.close();
+  });
+}
 $('#btn-filters').onclick = e => {
   const open = $('.toolbar').classList.toggle('open');
   e.currentTarget.setAttribute('aria-expanded', open);

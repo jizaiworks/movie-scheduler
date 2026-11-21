@@ -155,15 +155,17 @@
 </dialog>
 
 <!-- 作品詳細 -->
-<dialog id="dlg-detail">
+<dialog id="dlg-detail" class="viewer">
+  <form method="dialog" class="dlg-x-wrap"><button class="dlg-x" aria-label="閉じる" title="閉じる">×</button></form>
   <div class="dlg-body"></div>
-  <form method="dialog" class="dlg-actions"><button>閉じる</button></form>
+  <form method="dialog" class="dlg-closebar"><button class="close-btn">閉じる</button></form>
 </dialog>
 
 <!-- 日別一覧 -->
-<dialog id="dlg-day">
+<dialog id="dlg-day" class="viewer">
+  <form method="dialog" class="dlg-x-wrap"><button class="dlg-x" aria-label="閉じる" title="閉じる">×</button></form>
   <div class="dlg-body"></div>
-  <form method="dialog" class="dlg-actions"><button>閉じる</button></form>
+  <form method="dialog" class="dlg-closebar"><button class="close-btn">閉じる</button></form>
 </dialog>
 
 <script src="js/app.js"></script>

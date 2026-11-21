@@ -1,6 +1,6 @@
 // Service Worker: アプリ本体とポスター画像をキャッシュしてオフラインでも開けるようにする
 // アプリを更新したら VERSION を上げると、古いキャッシュが削除されます。
-const VERSION = 'v2';
+const VERSION = 'v3';
 const APP_CACHE = `app-${VERSION}`;
 const IMG_CACHE = 'posters';
 const IMG_LIMIT = 400;
