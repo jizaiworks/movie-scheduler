@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>映画公開スケジューラー</title>
+<meta name="theme-color" content="#4f46e5">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="映画スケジュール">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>🎬 映画公開スケジューラー</h1>
+  <div class="nav">
+    <button id="btn-prev" title="前へ (←)" aria-label="前へ">‹</button>
+    <button id="btn-today" title="今日 (T)">今日</button>
+    <button id="btn-next" title="次へ (→)" aria-label="次へ">›</button>
+    <h2 id="period-label"></h2>
+  </div>
+  <div class="views" role="tablist">
+    <button data-view="month">月</button>
+    <button data-view="week">週</button>
+    <button data-view="list">リスト</button>
+  </div>
+  <div class="actions">
+    <button id="btn-add" class="primary" title="作品を追加">＋ <span class="lbl">作品を追加</span><span class="lbl-s">作品</span></button>
+    <button id="btn-add-screening" class="primary" title="上映期間を登録">＋ <span class="lbl">上映期間</span><span class="lbl-s">上映</span></button>
+    <button id="btn-theaters" title="映画館">🎦<span class="lbl"> 映画館</span></button>
+    <button id="btn-ics" title="表示中の期間を .ics で書き出し">📅<span class="lbl"> iCal書き出し</span></button>
+    <button id="btn-settings" title="設定">⚙<span class="lbl"> 設定</span></button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <button id="btn-filters" class="only-mobile" aria-expanded="false">絞り込み ▾</button>
+  <div class="filters">
+    <input id="search" type="search" placeholder="タイトルで絞り込み">
+    <label><input type="checkbox" id="f-fav"> お気に入りのみ</label>
+    <label><input type="checkbox" id="f-tmdb" checked> TMDbの作品</label>
+    <label><input type="checkbox" id="f-manual" checked> 手動追加の作品</label>
+    <label><input type="checkbox" id="f-screen" checked> 上映期間</label>
+    <select id="f-theater" title="上映期間を映画館で絞り込み"></select>
+    <button id="btn-reload" title="表示中の期間をTMDbから取得し直す">↻ 再取得</button>
+  </div>
+  <span id="status" class="status"></span>
+</div>
+
+<div id="banner" class="banner" hidden></div>
+
+<main id="view"></main>
+
+<footer>
+  公開日データ: <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDb</a>.
+  This product uses the TMDB API but is not endorsed or certified by TMDB.
+</footer>
+
+<!-- 設定 -->
+<dialog id="dlg-settings">
+  <form id="form-settings" method="dialog">
+    <h3>設定</h3>
+    <label>TMDb APIキー（v3 APIキー または 読み取りアクセストークン）
+      <input name="apiKey" type="password" autocomplete="off" spellcheck="false">
+    </label>
+    <p class="hint">
+      <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">TMDbのAPI設定ページ</a>で無料で取得できます。
+      キーはこのブラウザの中（localStorage）だけに保存されます。
+    </p>
+    <label>公開日の対象地域 <select name="region"></select></label>
+    <label>1か月あたりの取得ページ数（1ページ = 最大20作品）
+      <input name="maxPages" type="number" min="1" max="20" required>
+    </label>
+    <fieldset>
+      <legend>データ</legend>
+      <button type="button" id="btn-clear-cache">TMDbキャッシュを削除</button>
+      <button type="button" id="btn-backup">バックアップを書き出し</button>
+      <button type="button" id="btn-restore">バックアップを読み込み</button>
+      <input type="file" id="file-restore" accept="application/json,.json" hidden>
+      <p class="hint">バックアップには手動追加の作品とお気に入りが含まれます。</p>
+    </fieldset>
+    <div class="dlg-actions">
+      <button value="cancel" formnovalidate>キャンセル</button>
+      <button value="save" class="primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 手動追加・編集 -->
+<dialog id="dlg-edit">
+  <form id="form-edit" method="dialog">
+    <h3 id="edit-heading">作品を追加</h3>
+    <input type="hidden" name="id">
+    <label>タイトル <input name="title" required maxlength="200"></label>
+    <label>公開日 <input name="date" type="date" required></label>
+    <label>メモ <textarea name="note" rows="3" maxlength="1000"></textarea></label>
+    <label class="inline">色 <input name="color" type="color" value="#e11d48"></label>
+    <div class="dlg-actions">
+      <button value="cancel" formnovalidate>キャンセル</button>
+      <button value="save" class="primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 上映期間の登録・編集 -->
+<dialog id="dlg-screening">
+  <form id="form-screening" method="dialog">
+    <h3 id="screening-heading">上映期間を登録</h3>
+    <input type="hidden" name="id">
+    <input type="hidden" name="tmdbId">
+    <label>作品名
+      <input name="title" required maxlength="200" list="title-options" autocomplete="off" placeholder="カレンダー上の作品は候補から選べます">
+    </label>
+    <datalist id="title-options"></datalist>
+    <label>映画館 <select name="theaterId" required></select></label>
+    <p class="hint"><a id="theater-link" target="_blank" rel="noopener">この映画館の上映スケジュールを開く ↗</a></p>
+    <div class="row2">
+      <label>上映開始日 <input name="start" type="date" required></label>
+      <label>上映終了日 <input name="end" type="date"></label>
+    </div>
+    <p class="hint">終了日が未定なら空欄のままにしてください（「終了未定」として表示します）。</p>
+    <label>メモ <textarea name="note" rows="2" maxlength="1000" placeholder="例：IMAX・字幕版のみ など"></textarea></label>
+    <div class="dlg-actions">
+      <button type="button" class="danger" id="btn-delete-screening">削除</button>
+      <span class="spacer"></span>
+      <button value="cancel" formnovalidate>キャンセル</button>
+      <button value="save" class="primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 映画館の管理 -->
+<dialog id="dlg-theaters">
+  <h3>映画館</h3>
+  <div id="theater-list" class="theater-list"></div>
+  <form id="form-theater">
+    <h4 id="theater-form-heading">映画館を追加</h4>
+    <input type="hidden" name="id">
+    <label>名前 <input name="name" required maxlength="100"></label>
+    <div class="row2">
+      <label>略称（カレンダー表示用） <input name="short" maxlength="10"></label>
+      <label class="inline">色 <input name="color" type="color" value="#0284c7"></label>
+    </div>
+    <label>上映スケジュールのURL <input name="url" type="url" placeholder="https://"></label>
+    <div class="dlg-actions">
+      <button type="button" id="btn-theater-reset">入力をクリア</button>
+      <button type="submit" class="primary">保存</button>
+    </div>
+  </form>
+  <form method="dialog" class="dlg-actions"><button>閉じる</button></form>
+</dialog>
+
+<!-- 作品詳細 -->
+<dialog id="dlg-detail">
+  <div class="dlg-body"></div>
+  <form method="dialog" class="dlg-actions"><button>閉じる</button></form>
+</dialog>
+
+<!-- 日別一覧 -->
+<dialog id="dlg-day">
+  <div class="dlg-body"></div>
+  <form method="dialog" class="dlg-actions"><button>閉じる</button></form>
+</dialog>
+
+<script src="js/app.js"></script>
+</body>
+</html>
